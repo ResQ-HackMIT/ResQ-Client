@@ -11,6 +11,8 @@ import android.view.MenuItem;
 
 import com.avontell.resq_client.domain.RescueID;
 
+import pl.bclogic.pulsator4droid.library.PulsatorLayout;
+
 /**
  * Main activity of the rescue app, which displays the Rescue ID
  */
