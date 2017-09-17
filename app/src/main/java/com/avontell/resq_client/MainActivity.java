@@ -8,12 +8,17 @@ import android.os.AsyncTask;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 
+import com.avontell.resq_client.domain.DisasterStatus;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -23,6 +28,9 @@ import com.google.android.gms.tasks.OnSuccessListener;
 
 import com.avontell.resq_client.domain.RescueID;
 import com.avontell.resq_client.util.ResQApi;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * Main activity of the rescue app, which displays the Rescue ID
@@ -40,6 +48,11 @@ public class MainActivity extends AppCompatActivity {
     private LocationCallback mLocationCallback;
     boolean mRequestingLocationUpdates = false;
     private Location lastLocation;
+
+    private CardView quickView;
+    private TextView quickTitle;
+    private TextView quickExtra;
+    private ImageView quickIcon;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
 
         String apiKey = sharedPref.getString(ResQApi.ACCOUNT_AUTH_KEY, "NOPE");
         if (apiKey.equals("NOPE")) {
+            Log.e("MAKE NEW ONE", "DSFDSF");
             new CreateAccountTask().execute();
         } else {
             Log.e("GOT KEY", apiKey);
@@ -108,9 +122,49 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        new UpdateStatusTask().execute();
         if (mRequestingLocationUpdates) {
             startLocationUpdates();
         }
+    }
+
+    /**
+     * Update the quick information regarding this disaster
+     * @param status
+     * @param quickInfo
+     * @param extraInfo
+     */
+    public void updateDisasterInfo(DisasterStatus status, String quickInfo, String extraInfo) {
+
+        quickExtra.setVisibility(View.VISIBLE);
+
+        switch (status) {
+            case APPROACHING:
+                quickView.setCardBackgroundColor(getColor(R.color.notifWarn));
+                quickTitle.setText(quickInfo);
+                quickExtra.setText(extraInfo);
+                quickIcon.setImageDrawable(getDrawable(R.drawable.caution_icon));
+                break;
+            case CLEAR:
+                quickView.setCardBackgroundColor(getColor(R.color.notifGood));
+                quickTitle.setText("No Nearby Disasters");
+                quickExtra.setVisibility(View.GONE);
+                quickIcon.setImageDrawable(getDrawable(R.drawable.sunny_icon));
+                break;
+            case IN_PROGRESS:
+                quickView.setCardBackgroundColor(getColor(R.color.notifWarn));
+                quickTitle.setText(quickInfo);
+                quickExtra.setText(extraInfo);
+                quickIcon.setImageDrawable(getDrawable(R.drawable.track_icon));
+                break;
+            case AFTERMATH:
+                quickView.setCardBackgroundColor(getColor(R.color.notifComing));
+                quickTitle.setText(quickInfo);
+                quickExtra.setText(extraInfo);
+                quickIcon.setImageDrawable(getDrawable(R.drawable.paint_icon));
+                break;
+        }
+
     }
 
     private void startLocationUpdates() {
@@ -151,6 +205,11 @@ public class MainActivity extends AppCompatActivity {
         // specify an adapter (see also next example)
         adapter = new RescueIdAdapter(information);
         rescueIdView.setAdapter(adapter);
+
+        quickView = (CardView) findViewById(R.id.quick_view);
+        quickTitle = (TextView) findViewById(R.id.quick_title);
+        quickIcon = (ImageView) findViewById(R.id.quick_icon);
+        quickExtra = (TextView) findViewById(R.id.quick_info);
 
     }
 
@@ -256,6 +315,46 @@ public class MainActivity extends AppCompatActivity {
             return null;
         }
 
+    }
+
+    class UpdateStatusTask extends AsyncTask<Void, Void, Void> {
+
+        JSONObject result;
+
+        @Override
+        protected Void doInBackground(Void ... voids) {
+
+            result = ResQApi.getStatus();
+            Log.e("RESULT", result.toString());
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+
+            DisasterStatus stat = DisasterStatus.IN_PROGRESS;
+            try {
+                switch (result.getString("status")) {
+                    case "In progress":
+                        stat = DisasterStatus.IN_PROGRESS;
+                        break;
+                    case "Clear":
+                        stat = DisasterStatus.CLEAR;
+                        break;
+                    case "Approaching":
+                        stat = DisasterStatus.APPROACHING;
+                        break;
+                    case "Aftermath":
+                        stat = DisasterStatus.AFTERMATH;
+                        break;
+                }
+                updateDisasterInfo(stat, result.getString("title"), result.getString("description"));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+        }
     }
 
 }

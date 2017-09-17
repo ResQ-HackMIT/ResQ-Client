@@ -5,7 +5,6 @@ import android.content.SharedPreferences;
 import android.location.Location;
 import android.util.Log;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -23,9 +22,10 @@ import okhttp3.Response;
 public class ResQApi {
 
     public static final String url = "http://35.196.47.57";
-    public static final String LOCATION = "/location";
+    public static final String LOCATION = "/api/location";
     public static final String RESPONDER = "/api/auth/firstresponder";
     public static final String TRIAGE = "/api/triage";
+    public static final String STATUS = "/api/status";
     public static final String USER = "/api/auth/user";
 
     public static final String ACCOUNT_INFO_KEY = "ACCOUNTINFOKEY";
@@ -111,7 +111,7 @@ public class ResQApi {
 
             RequestBody body = RequestBody.create(JSON, data.toString());
             Request request = new Request.Builder()
-                    .url(url + USER)
+                    .url(url + LOCATION)
                     .addHeader("Authorization", getFromPrefs(context, ACCOUNT_AUTH_KEY, "null"))
                     .post(body)
                     .build();
@@ -133,6 +133,29 @@ public class ResQApi {
         }
 
         return true;
+
+    }
+
+    public static JSONObject getStatus() {
+
+        try {
+
+            OkHttpClient client = new OkHttpClient();
+
+            Request request = new Request.Builder()
+                    .url(url + STATUS)
+                    .build();
+
+            Response response = client.newCall(request).execute();
+            return new JSONObject(response.body().string());
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return new JSONObject();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new JSONObject();
+        }
 
     }
 
