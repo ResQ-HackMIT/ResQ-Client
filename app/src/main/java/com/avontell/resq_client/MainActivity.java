@@ -324,6 +324,12 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected Void doInBackground(Void ... voids) {
 
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
             result = ResQApi.getStatus();
             Log.e("RESULT", result.toString());
             return null;
@@ -353,6 +359,8 @@ public class MainActivity extends AppCompatActivity {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
+
+            new UpdateStatusTask().execute();
 
         }
     }
